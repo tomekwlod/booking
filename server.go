@@ -145,6 +145,15 @@ func main() {
 		)...,
 	)).Methods("GET")
 
+	router.Handle("/upload", Chain(
+		http.HandlerFunc(uploadHandler),
+
+		append(
+			regularMiddlewares,
+			supportXHTTPMethodOverrideMiddleware(),
+		)...,
+	)).Methods("POST")
+
 	host := "127.0.0.1"
 	port := env.Env("API_SRV_PORT", "8080")
 
