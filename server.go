@@ -1,5 +1,8 @@
 package main
 
+// https://stackoverflow.com/questions/63734176/how-to-wrap-sql-transaction-in-go-with-existing-repository-that-doesnt-use-sql
+// https://github.com/drone/drone/blob/master/store/user/user.go
+
 import (
 	"fmt"
 	"log"
@@ -15,6 +18,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/tomekwlod/booking/internal/database"
+	"github.com/tomekwlod/booking/model"
+	userRepo "github.com/tomekwlod/booking/repo/user"
 	"github.com/tomekwlod/utils/env"
 )
 
@@ -49,7 +54,7 @@ func main() {
 		env.Env("POSTGRES_PORT", "5432"),
 		env.Env("POSTGRES_USER", "postgres"),
 		env.Env("POSTGRES_PASSWORD", "postgres"),
-		env.Env("POSTGRES_DB", "godmcs"),
+		env.Env("POSTGRES_DB", "booking"),
 		env.Env("POSTGRES_SSLMODE", "disable"))
 
 	pconn, err = database.PostgresConnection(dbURL)
@@ -60,6 +65,35 @@ func main() {
 	}
 
 	defer pconn.Close()
+
+	tx, _ := pconn.Begin()
+	defer func() {
+		if err == nil {
+			err = tx.Commit()
+		} else {
+			err = tx.Rollback() // or use a []error, or else, to not shadow the underlying error.
+		}
+	}()
+	ctx := context.Background()
+
+	user := &model.User{
+		Username:    "twl",
+		Email:       "twl",
+		Description: "testonly",
+	}
+
+	fmt.Printf("%+v\n", user)
+
+	var ur userRepo.UserRepo
+	err = ur.Create(ctx, tx, user)
+	if err != nil {
+		panic(err)
+	}
+
+	// fmt.Println(id)
+	fmt.Printf("%+v\n", user)
+
+	return
 
 	nextRequestID := func() string {
 		return fmt.Sprintf("%d", time.Now().UnixNano())

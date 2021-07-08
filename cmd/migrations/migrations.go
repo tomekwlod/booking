@@ -31,16 +31,14 @@ func main() {
 		"file://db/migrations",
 		fmt.Sprintf(
 			"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-			os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_PORT"), os.Getenv("POSTGRES_DB"), os.Getenv("POSTGRES_SSLMODE")))
+			os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_PORT"), os.Getenv("POSTGRES_DB"), os.Getenv("POSTGRES_SSLMODE")),
+	)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	version, dirty, err := m.Version()
-
-	if err != nil {
-		log.Fatalf("versioning, error returned: %v", err)
-	}
+	version, dirty, _ := m.Version()
 
 	log.Printf("Current version: %d, dirty?: %t\n", version, dirty)
 
@@ -54,4 +52,10 @@ func main() {
 			log.Fatalf("Error while executing migration: `%v`", err)
 		}
 	}
+
+	log.Print("All done\n")
+
+	version, dirty, _ = m.Version()
+
+	log.Printf("New version: %d, dirty?: %t\n", version, dirty)
 }
