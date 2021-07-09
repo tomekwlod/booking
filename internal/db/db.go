@@ -1,6 +1,8 @@
-package database
+package db
 
 import (
+	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jackc/pgx"
@@ -10,6 +12,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+type Querier interface {
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+}
+type Execer interface {
+	Querier
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+type Binder interface {
+	BindNamed(query string, arg interface{}) (string, []interface{}, error)
+}
 
 type PConn struct {
 	*sqlx.DB

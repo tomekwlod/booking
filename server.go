@@ -14,16 +14,17 @@ import (
 
 	"context"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 
 	"github.com/gorilla/mux"
-	"github.com/tomekwlod/booking/internal/database"
-	"github.com/tomekwlod/booking/model"
-	userRepo "github.com/tomekwlod/booking/repo/user"
+	"github.com/tomekwlod/booking/core"
+	"github.com/tomekwlod/booking/internal/db"
+	us "github.com/tomekwlod/booking/store/user"
 	"github.com/tomekwlod/utils/env"
 )
 
-var pconn *database.PConn
+var pconn *db.PConn
 
 func main() {
 
@@ -57,41 +58,34 @@ func main() {
 		env.Env("POSTGRES_DB", "booking"),
 		env.Env("POSTGRES_SSLMODE", "disable"))
 
-	pconn, err = database.PostgresConnection(dbURL)
-
+	pconn, err = db.PostgresConnection(dbURL)
 	if err != nil {
-
 		log.Fatalf("error while connecting to db %v", err)
 	}
-
 	defer pconn.Close()
 
-	tx, _ := pconn.Begin()
-	defer func() {
-		if err == nil {
-			err = tx.Commit()
-		} else {
-			err = tx.Rollback() // or use a []error, or else, to not shadow the underlying error.
-		}
-	}()
 	ctx := context.Background()
 
-	user := &model.User{
-		Username:    "twl",
-		Email:       "twl",
-		Description: "testonly",
-	}
+	err = pconn.Transact(func(tx *sqlx.Tx) (err error) {
 
-	fmt.Printf("%+v\n", user)
+		user := &core.User{
+			Username:    "twl",
+			Email:       "twl",
+			Description: "testonly",
+		}
 
-	var ur userRepo.UserRepo
-	err = ur.Create(ctx, tx, user)
-	if err != nil {
-		panic(err)
-	}
+		fmt.Printf("%+v\n", user)
 
-	// fmt.Println(id)
-	fmt.Printf("%+v\n", user)
+		userStore := us.New(pconn)
+
+		err = userStore.Create(ctx, tx, user)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%+v\n", user)
+		return
+	})
 
 	return
 
