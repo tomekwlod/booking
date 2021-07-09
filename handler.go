@@ -25,7 +25,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func dbtestHandler(w http.ResponseWriter, r *http.Request) {
 
-	err := pconn.Ping()
+	err := dbConn.Ping()
 
 	if err != nil {
 

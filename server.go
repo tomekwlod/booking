@@ -24,7 +24,7 @@ import (
 	"github.com/tomekwlod/utils/env"
 )
 
-var pconn *db.PConn
+var dbConn *db.DB
 
 func main() {
 
@@ -58,15 +58,15 @@ func main() {
 		env.Env("POSTGRES_DB", "booking"),
 		env.Env("POSTGRES_SSLMODE", "disable"))
 
-	pconn, err = db.PostgresConnection(dbURL)
+	dbConn, err = db.PostgresConnection(dbURL)
 	if err != nil {
 		log.Fatalf("error while connecting to db %v", err)
 	}
-	defer pconn.Close()
+	defer dbConn.Close()
 
 	ctx := context.Background()
 
-	err = pconn.Transact(func(tx *sqlx.Tx) (err error) {
+	err = dbConn.Transact(func(tx *sqlx.Tx) (err error) {
 
 		user := &core.User{
 			Username:    "twl",
@@ -76,7 +76,7 @@ func main() {
 
 		fmt.Printf("%+v\n", user)
 
-		userStore := us.New(pconn)
+		userStore := us.New(dbConn)
 
 		err = userStore.Create(ctx, tx, user)
 		if err != nil {

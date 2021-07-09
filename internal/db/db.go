@@ -25,17 +25,17 @@ type Binder interface {
 	BindNamed(query string, arg interface{}) (string, []interface{}, error)
 }
 
-type PConn struct {
+type DB struct {
 	*sqlx.DB
 }
-type PConnPool struct {
+type DBPool struct {
 	*pgx.ConnPool
 }
 
 // just to count the total amount of the transactions
 var transactions int = 0
 
-func PostgresConnection(connString string) (*PConn, error) {
+func PostgresConnection(connString string) (*DB, error) {
 
 	logrus.Debug("Connecting to PostgreSQL DB with:", connString)
 
@@ -58,12 +58,12 @@ func PostgresConnection(connString string) (*PConn, error) {
 
 	logrus.Debug("Successfully connected to postgress")
 
-	p := &PConn{db}
+	p := &DB{db}
 
 	return p, nil
 }
 
-func PostgresConnectionPool(connString string) (*PConnPool, error) {
+func PostgresConnectionPool(connString string) (*DBPool, error) {
 
 	logrus.Debug("Connecting to PostgreSQL DB with:", connString)
 
@@ -79,7 +79,7 @@ func PostgresConnectionPool(connString string) (*PConnPool, error) {
 
 		return nil, errors.Wrap(err, "Call to pgx.NewConnPool failed")
 	}
-	p := &PConnPool{connPool}
+	p := &DBPool{connPool}
 
 	return p, nil
 
@@ -92,7 +92,7 @@ func PostgresConnectionPool(connString string) (*PConnPool, error) {
 	// if err != nil {
 	// 	return nil, errors.Wrap(err, "Call to pgx.NewConnPool failed")
 	// }
-	// p := &PConn{db}
+	// p := &DBPool{db}
 
 	// return p, nil
 	// return
@@ -112,19 +112,19 @@ func PostgresConnectionPool(connString string) (*PConnPool, error) {
 
 	// logrus.Debug("Successfully connected to postgress")
 
-	// p := &PConn{db}
+	// p := &DBPool{db}
 
 	// return p, nil
 }
 
-func (pconn *PConn) Transact(txFunc func(*sqlx.Tx) error) (err error) {
+func (conn *DB) Transact(txFunc func(*sqlx.Tx) error) (err error) {
 
 	transactions++
 
 	// https://stackoverflow.com/questions/16184238/database-sql-tx-detecting-commit-or-rollback
 	// https://stackoverflow.com/questions/51912841/golang-transactional-api-design
 
-	tx, err := pconn.Beginx()
+	tx, err := conn.Beginx()
 
 	logrus.Debugf("Transaction opened [%d]", transactions)
 
