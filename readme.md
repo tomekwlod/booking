@@ -2,6 +2,8 @@ todo:
 - move execer & queryier to db package
 - create transactify method
 - investigate services/stores
+- validator
+- jwt
 
 ```
 https://github.com/drone/drone/blob/master/store/user/user.go

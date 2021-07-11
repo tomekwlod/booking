@@ -14,13 +14,10 @@ import (
 
 	"context"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 
 	"github.com/gorilla/mux"
-	"github.com/tomekwlod/booking/core"
 	"github.com/tomekwlod/booking/internal/db"
-	us "github.com/tomekwlod/booking/store/user"
 	"github.com/tomekwlod/utils/env"
 )
 
@@ -63,31 +60,6 @@ func main() {
 		log.Fatalf("error while connecting to db %v", err)
 	}
 	defer dbConn.Close()
-
-	ctx := context.Background()
-
-	err = dbConn.Transact(func(tx *sqlx.Tx) (err error) {
-
-		user := &core.User{
-			Username:    "twl",
-			Email:       "twl",
-			Description: "testonly",
-		}
-
-		fmt.Printf("%+v\n", user)
-
-		userStore := us.New(dbConn)
-
-		err = userStore.Create(ctx, tx, user)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("%+v\n", user)
-		return
-	})
-
-	return
 
 	nextRequestID := func() string {
 		return fmt.Sprintf("%d", time.Now().UnixNano())
@@ -162,6 +134,15 @@ func main() {
 	// 		supportXHTTPMethodOverrideMiddleware(),
 	// 	)...,
 	// )).Methods("GET")
+
+	router.Handle("/signup", Chain(
+		http.HandlerFunc(signupHandler),
+
+		append(
+			regularMiddlewares,
+			supportXHTTPMethodOverrideMiddleware(),
+		)...,
+	)).Methods("POST")
 
 	router.Handle("/json", Chain(
 		http.HandlerFunc(jsonHandler),

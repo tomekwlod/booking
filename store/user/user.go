@@ -17,6 +17,8 @@ type userStore struct {
 }
 
 func (r *userStore) Create(ctx context.Context, db db.Execer, u *core.User) error { // User instead of the interface{}
+
 	// postgres has $1 binding whereas mysql has ?
-	return db.QueryRowContext(ctx, `INSERT INTO users (username, email, description) VALUES ($1,$2,$3) RETURNING id`, u.Username, u.Email, u.Description).Scan(&u.ID)
+	return db.QueryRowContext(ctx, `INSERT INTO users (password, email) 
+    VALUES ($1,$2) RETURNING id`, u.Password, u.Email).Scan(&u.ID)
 }

@@ -8,6 +8,8 @@ package main
 // https://github.com/aws/aws-sdk-go/commit/50ba1dfe47983b15b160b66c730a3b93d2961f8e -- progress to stdout
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,8 +17,12 @@ import (
 	"net/http"
 
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/jmoiron/sqlx"
+	"github.com/tomekwlod/booking/core"
 	"github.com/tomekwlod/booking/internal/s3"
+	us "github.com/tomekwlod/booking/store/user"
 	"github.com/tomekwlod/utils/env"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +40,97 @@ func dbtestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("ok"))
+}
+
+type signupCredentials struct {
+	Password string `json:"password,omitempty"`
+	Email    string `json:"email,omitempty"`
+}
+type signuoCredentialsError struct {
+	Error signupCredentials `json:"errors`
+}
+
+func signupHandler(w http.ResponseWriter, r *http.Request) {
+
+	var creds signupCredentials
+
+	// Get the JSON body and decode into credentials
+	err := json.NewDecoder(r.Body).Decode(&creds)
+
+	if err != nil {
+		// If the structure of the body is wrong, return an HTTP error
+		log.Printf("[server/signupHandler] structure of the body is wrong: %+v", creds)
+
+		writeError(w, errBadRequest)
+
+		return
+	}
+
+	e := &signuoCredentialsError{}
+
+	// some validation need to happen here!!!!
+	if creds.Email == "" {
+
+		log.Printf("[server/signupHandler] email cannot be empty: %+v", creds)
+
+		e.Error.Email = "This field cannot be empty"
+	}
+	if creds.Password == "" {
+
+		log.Printf("[server/signupHandler] password cannot be empty: %+v", creds)
+
+		e.Error.Password = "This field cannot be empty"
+	}
+
+	if (signuoCredentialsError{}) != *e {
+		writeJSON(w, e, http.StatusForbidden)
+		return
+	}
+
+	// email validation here
+	// password validation here
+
+	// Salt and hash the password using the bcrypt algorithm
+	// The second argument is the cost of hashing, which we arbitrarily set as 8 (this value can be more or less, depending on the computing power you wish to utilize)
+	hash, err := bcrypt.GenerateFromPassword([]byte(creds.Password), 8)
+
+	if err != nil {
+
+		log.Printf("[server/signupHandler] problem with hashing the given password: %s", err.Error())
+		writeError(w, errInternalServer)
+		return
+	}
+
+	ctx := context.Background()
+
+	user := core.User{
+		Email:    creds.Email,
+		Password: string(hash),
+	}
+
+	err = dbConn.Transact(func(tx *sqlx.Tx) (err error) {
+
+		userStore := us.New(dbConn)
+
+		//
+		// check if user is not already in db
+		//
+
+		err = userStore.Create(ctx, tx, &user)
+		if err != nil {
+			return err
+		}
+
+		return
+	})
+
+	if err != nil {
+		log.Printf("[server/signupHandler] error while writing to a database: %s", err.Error())
+		writeError(w, errInternalServer)
+		return
+	}
+
+	writeJSON(w, user, http.StatusOK)
 }
 
 func jsonHandler(w http.ResponseWriter, r *http.Request) {
