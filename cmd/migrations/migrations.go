@@ -17,13 +17,11 @@ func main() {
 	err := godotenv.Load()
 
 	if err != nil {
-
 		log.Println("No .env file detected. Will pretend nothing happened")
 		err = nil
 	}
 
 	if os.Getenv("POSTGRES_HOST") == "" {
-
 		log.Fatalln("No `POSTGRES_HOST` env variable detected. Didn't you forget to load the .env (locally) or inject env variables onto docker/kuber?")
 	}
 
@@ -42,13 +40,28 @@ func main() {
 
 	log.Printf("Current version: %d, dirty?: %t\n", version, dirty)
 
-	if err := m.Up(); err != nil {
+	if len(os.Args) <= 1 {
+		fmt.Println()
+		log.Fatalln("In order to run a migration you need to say what migration method to use. The options are: up or down")
+	}
 
+	mode := os.Args[1]
+
+	switch mode {
+	case "up":
+		err = m.Up()
+		break
+	case "down":
+		err = m.Down()
+		break
+	default:
+		break
+	}
+
+	if err != nil {
 		if err.Error() == "no change" {
-
 			log.Println("Database up to date")
 		} else {
-
 			log.Fatalf("Error while executing migration: `%v`", err)
 		}
 	}
