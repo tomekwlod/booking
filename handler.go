@@ -46,8 +46,8 @@ type signupCredentials struct {
 	Password string `json:"password,omitempty"`
 	Email    string `json:"email,omitempty"`
 }
-type signuoCredentialsError struct {
-	Error signupCredentials `json:"errors`
+type signupCredentialsError struct {
+	Error signupCredentials `json:"errors"`
 }
 
 func signupHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +66,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e := &signuoCredentialsError{}
+	e := &signupCredentialsError{}
 
 	// some validation need to happen here!!!!
 	if creds.Email == "" {
@@ -82,7 +82,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 		e.Error.Password = "This field cannot be empty"
 	}
 
-	if (signuoCredentialsError{}) != *e {
+	if (signupCredentialsError{}) != *e {
 		writeJSON(w, e, http.StatusForbidden)
 		return
 	}
